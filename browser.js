@@ -55,7 +55,7 @@ class Server {
     }
 
     makeOffer(offer, done) {
-        const offerHash = hashObj(offer, { algorithm: 'sha1' });
+        const offerHash = hashObj(offer.offer, { algorithm: 'sha1' });
         say(log, 'making offer: ' + offerHash);
 
         xhr('/offer', {
@@ -80,37 +80,47 @@ class Server {
 
         this.waitingForSignal = true;
 
-        const peer = new Peer({
-            config: {
-                iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ]
-            },
-            initiator: true
-        });
+        const peer = new Peer({ initiator: true, trickle: false });
+        const offer = { offer: null, candidates: [] };
+        let hasOffered = false;
 
         peer.on('connect', () => {
             say(log, 'new peer connected!');
         });
 
         peer.on('signal', data => {
-            if (data.type !== 'offer') {
+            if (data.type === 'offer') {
+                offer.offer = data;
+            } else if (data.candidate) {
+                offer.candidates.push(data.candidate);
+            }
+
+            if (hasOffered) {
                 return;
             }
 
-            this.makeOffer(data, (err, offerHash) => {
-                if (err) {
-                    return console.error(err);
-                }
+            hasOffered = true;
 
-                this.askForAnswer(offerHash, (err, answer) => {
+            setTimeout(() => {
+                this.makeOffer(offer, (err, offerHash) => {
                     if (err) {
                         return console.error(err);
                     }
 
-                    peer.signal(answer);
-                    //this.waitingForSignal = false;
-                    this.generatePeer();
+                    this.askForAnswer(offerHash, (err, answer) => {
+                        if (err) {
+                            return console.error(err);
+                        }
+
+                        peer.signal(answer.answer);
+                        answer.candidates.forEach(candidate => {
+                            peer.signal({ candidate });
+                        });
+                        //this.waitingForSignal = false;
+                        this.generatePeer();
+                    });
                 });
-            });
+            }, 2000);
         });
 
         this.peers.push(peer);
@@ -132,7 +142,7 @@ class Client {
     }
 
     answerOffer(answer, offer, done) {
-        const offerHash = hashObj(offer, { algorithm: 'sha1' });
+        const offerHash = hashObj(offer.offer, { algorithm: 'sha1' });
 
         xhr(`/answer?offer=${offerHash}`, {
             body: answer,
@@ -166,22 +176,37 @@ class Client {
                 return console.error(err);
             }
 
+            const answer = { answer: null, candidates: [] };
+            let hasAnswered = false;
+
             this.peer.on('signal', data => {
-                if (data.type !== 'answer') {
+                if (data.type === 'answer') {
+                    answer.answer = data;
+                } else if (data.candidate) {
+                    answer.candidates.push(data.candidate);
+                }
+
+                if (hasAnswered) {
                     return;
                 }
 
-                this.answerOffer(data, offer, (err) => {
-                    if (err) {
-                        return console.error(err);
-                    }
+                hasAnswered = true;
 
-                    say(log, 'sent answer to lobby!');
-                });
+                setTimeout(() => {
+                    this.answerOffer(answer, offer, (err) => {
+                        if (err) {
+                            return console.error(err);
+                        }
+
+                        say(log, 'sent answer to lobby!');
+                    });
+                }, 2000);
             });
 
-            console.log(offer);
-            this.peer.signal(offer);
+            this.peer.signal(offer.offer);
+            offer.candidates.forEach(candidate => {
+                this.peer.signal({ candidate });
+            });
         });
     }
 

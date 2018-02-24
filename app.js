@@ -9,8 +9,8 @@ const indexHtml = fs.readFileSync('./index.html');
 // this would be a SQL table
 const lobbyOffers = {
     /*offerHash: {
-        offer: offer,
-        answer: null
+        offer: { offer, candidates },
+        answer: { answer, candidates }
     }*/
 };
 
@@ -59,14 +59,19 @@ const server = http.createServer((req, res) => {
             return;
         } else if (/post/i.test(req.method)) {
             bodyParser.json()(req, res, () => {
-                if (req.body.type !== 'answer') {
+                const answer = req.body.answer;
+
+                if (!answer || answer.type !== 'answer') {
                     res.statusCode = 404;
                     sendJson(req, res, 'not found');
                     return;
                 }
 
                 console.log('new answer for ', offerHash);
-                lobbyOffers[offerHash].answer = req.body;
+
+                const candidates = req.body.candidates;
+                lobbyOffers[offerHash].answer = { answer, candidates };
+
                 sendJson(req, res, true);
             });
 
@@ -85,17 +90,20 @@ const server = http.createServer((req, res) => {
             return;
         } else if (/post/i.test(req.method)) {
             bodyParser.json()(req, res, () => {
-                if (req.body.type !== 'offer') {
+                const offer = req.body.offer;
+
+                if (!offer || offer.type !== 'offer') {
                     res.statusCode = 404;
                     sendJson(req, res, 'not found');
                     return;
                 }
 
-                const offerHash = hashObj(req.body, { algorithm: 'sha1' });
+                const candidates = req.body.candidates;
+                const offerHash = hashObj(offer, { algorithm: 'sha1' });
 
                 console.log('new offer', offerHash);
 
-                lobbyOffers[offerHash] = { offer: req.body };
+                lobbyOffers[offerHash] = { offer: { candidates, offer } };
                 offerStack.push(offerHash);
                 sendJson(req, res, true);
             });
