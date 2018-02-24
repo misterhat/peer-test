@@ -15,8 +15,11 @@ const log = h('pre', {
     }
 });
 
+const input = h('input', { type: 'text' });
+
 function say(log, msg) {
-    log.textContent = msg + '\n' + log.textContent;
+    log.textContent += msg + '\n';
+    log.scrollTop = log.scrollHeight;
 }
 
 function ask(url, done) {
@@ -88,6 +91,14 @@ class Server {
             say(log, 'new peer connected!');
         });
 
+        peer.on('data', data => {
+            say(log, data);
+
+            this.peers.forEach(p => {
+                p.send(data);
+            });
+        });
+
         peer.on('signal', data => {
             if (data.type === 'offer') {
                 offer.offer = data;
@@ -116,7 +127,7 @@ class Server {
                         answer.candidates.forEach(candidate => {
                             peer.signal({ candidate });
                         });
-                        //this.waitingForSignal = false;
+                        this.waitingForSignal = false;
                         this.generatePeer();
                     });
                 });
@@ -127,7 +138,14 @@ class Server {
     }
 
     sendMessage(msg) {
-        say(log, `${this.nick}: ${msg}`);
+        msg = `${this.nick}: ${msg}`;
+        say(log, msg);
+
+        this.peers.forEach(p => {
+            if (p.connected) {
+                p.send(msg);
+            }
+        });
     }
 
     start() {
@@ -139,6 +157,7 @@ class Client {
     constructor() {
         this.nick = sillyname().toLowerCase();
         this.peer = new Peer();
+        this.nasty = null;
     }
 
     answerOffer(answer, offer, done) {
@@ -169,6 +188,14 @@ class Client {
     connectToLobby() {
         this.peer.on('connect', () => {
             say(log, 'connected to server!');
+        });
+
+        this.peer.on('data', data => {
+            if (data.toString() === this.nasty) {
+                return;
+            }
+
+            say(log, data);
         });
 
         this.askForLatestOffer((err, offer) => {
@@ -204,14 +231,15 @@ class Client {
             });
 
             this.peer.signal(offer.offer);
-            offer.candidates.forEach(candidate => {
-                this.peer.signal({ candidate });
-            });
+            offer.candidates.forEach(c => this.peer.signal({ c }));
         });
     }
 
     sendMessage(msg) {
-        say(log, `${this.nick}: ${msg}`);
+        msg = `${this.nick}: ${msg}`;
+        this.nasty = msg;
+        say(log, msg);
+        this.peer.send(msg);
     }
 
     start() {
@@ -230,8 +258,6 @@ if (isServer) {
 }
 
 serclient.start();
-
-const input = h('input', { type: 'text' });
 
 input.addEventListener('keyup', e => {
     if (e.keyCode === 13) {
