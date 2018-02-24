@@ -1,0 +1,32 @@
+{
+  "name": "peer-test",
+  "version": "1.0.0",
+  "description": "testing multi-peer connections",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/misterhat/peer-test.git"
+  },
+  "keywords": [
+    "peer",
+    "multi",
+    "test"
+  ],
+  "author": "Zorian Medwid <misterhat144@gmail.com>",
+  "license": "AGPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/misterhat/peer-test/issues"
+  },
+  "homepage": "https://github.com/misterhat/peer-test#readme",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "hash-obj": "^1.0.0",
+    "hyperscript": "^2.0.2",
+    "sillyname": "^0.1.0",
+    "simple-peer": "^9.0.0",
+    "xhr": "^2.4.1"
+  }
+}
