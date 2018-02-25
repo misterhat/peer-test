@@ -1,6 +1,10 @@
 # peer-test
 multiple peer connection demo. utilizes a psuedo server-\>client model.
 
+## demonstration
+
+    [[!(./demo.png)](https://my.mixtape.moe/ivhoxi.webm)]
+
 ## installation
 
     git clone https://github.com/misterhat/peer-test
