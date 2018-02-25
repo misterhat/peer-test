@@ -3,7 +3,7 @@ multiple peer connection demo. utilizes a psuedo server-\>client model.
 
 ## demonstration
 
-    [[!(./demo.png)](https://my.mixtape.moe/ivhoxi.webm)]
+[![(./demo.png)]](https://my.mixtape.moe/ivhoxi.webm)
 
 ## installation
 
